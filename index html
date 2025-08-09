@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Interactive 3D AirPods Demo</title>
+<style>
+  body {
+    margin: 0;
+    background: #0B0C0D;
+    overflow: hidden;
+    font-family: 'Poppins', sans-serif;
+    color: white;
+  }
+  canvas {
+    display: block;
+  }
+  .info-panel {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    background: rgba(25, 25, 25, 0.9);
+    border-radius: 8px;
+    padding: 20px;
+    width: 280px;
+    display: none;
+    box-shadow: 0 0 15px rgba(201, 166, 107, 0.8);
+  }
+  .info-panel.active {
+    display: block;
+  }
+  .info-panel h2 {
+    margin-top: 0;
+    color: #C9A66B;
+  }
+  .info-panel button {
+    margin-top: 15px;
+    background: #C9A66B;
+    border: none;
+    padding: 8px 12px;
+    border-radius: 4px;
+    color: #0B0C0D;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.3s ease;
+  }
+  .info-panel button:hover {
+    background: #ae8e4a;
+  }
+</style>
+</head>
+<body>
+<script src="https://cdn.jsdelivr.net/npm/three@0.153.0/build/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.153.0/examples/js/controls/OrbitControls.min.js"></script>
+
+<div id="leftInfo" class="info-panel">
+  <h2>Left Earbud</h2>
+  <p>Adaptive noise cancellation, up to 5 hours playback, sweat and water resistant.</p>
+  <button onclick="closePanel()">Close</button>
+</div>
+<div id="rightInfo" class="info-panel">
+  <h2>Right Earbud</h2>
+  <p>Seamless device pairing, voice assistant support, wireless charging compatible.</p>
+  <button onclick="closePanel()">Close</button>
+</div>
+
+<script>
+  const scene = new THREE.Scene();
+  scene.background = new THREE.Color(0x0b0c0d);
+
+  const camera = new THREE.PerspectiveCamera(45, window.innerWidth/window.innerHeight, 0.1, 100);
+  camera.position.set(0, 0, 5);
+
+  const renderer = new THREE.WebGLRenderer({antialias: true});
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  document.body.appendChild(renderer.domElement);
+
+  // Controls
+  const controls = new THREE.OrbitControls(camera, renderer.domElement);
+  controls.enableDamping = true;
+  controls.dampingFactor = 0.1;
+  controls.minDistance = 2;
+  controls.maxDistance = 10;
+
+  // Light
+  const ambientLight = new THREE.AmbientLight(0xffffff, 0.4);
+  scene.add(ambientLight);
+
+  const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
+  directionalLight.position.set(5, 5, 5);
+  scene.add(directionalLight);
+
+  // AirPod parts: simple rounded capsules
+  function createEarbud() {
+    const geometry = new THREE.CapsuleGeometry(0.15, 0.5, 8, 16);
+    const material = new THREE.MeshPhysicalMaterial({
+      color: 0xffffff,
+      metalness: 0.2,
+      roughness: 0.3,
+      clearcoat: 1,
+      clearcoatRoughness: 0.1,
+    });
+    return new THREE.Mesh(geometry, material);
+  }
+
+  const leftEarbud = createEarbud();
+  leftEarbud.position.x = -0.6;
+  leftEarbud.rotation.z = 0.2;
+  scene.add(leftEarbud);
+
+  const rightEarbud = createEarbud();
+  rightEarbud.position.x = 0.6;
+  rightEarbud.rotation.z = -0.2;
+  scene.add(rightEarbud);
+
+  // Raycaster for detecting clicks
+  const raycaster = new THREE.Raycaster();
+  const mouse = new THREE.Vector2();
+
+  function onClick(event) {
+    // Normalize mouse coordinates (-1 to +1)
+    mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+    mouse.y = - (event.clientY / window.innerHeight) * 2 + 1;
+
+    raycaster.setFromCamera(mouse, camera);
+
+    const intersects = raycaster.intersectObjects([leftEarbud, rightEarbud]);
+    if (intersects.length > 0) {
+      const clickedObject = intersects[0].object;
+      if (clickedObject === leftEarbud) {
+        showPanel('leftInfo');
+      } else if (clickedObject === rightEarbud) {
+        showPanel('rightInfo');
+      }
+    }
+  }
+
+  function showPanel(id) {
+    document.getElementById('leftInfo').classList.remove('active');
+    document.getElementById('rightInfo').classList.remove('active');
+    document.getElementById(id).classList.add('active');
+  }
+
+  function closePanel() {
+    document.getElementById('leftInfo').classList.remove('active');
+    document.getElementById('rightInfo').classList.remove('active');
+  }
+
+  window.addEventListener('click', onClick);
+
+  // Animation loop
+  function animate() {
+    requestAnimationFrame(animate);
+
+    leftEarbud.rotation.y += 0.01;
+    rightEarbud.rotation.y += 0.01;
+
+    controls.update();
+    renderer.render(scene, camera);
+  }
+  animate();
+
+  // Handle resize
+  window.addEventListener('resize', () => {
+    camera.aspect = window.innerWidth/window.innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+  });
+</script>
+</body>
+</html>
